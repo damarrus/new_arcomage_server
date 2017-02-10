@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <script
+            src="https://code.jquery.com/jquery-3.1.1.js"
+            integrity="sha256-16cdPddA6VdVInumRGo6IbivbERE8p7CQR3HzTBuELA="
+            crossorigin="anonymous"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script>
+
+        var ws = new WebSocket("ws://localhost:5000");
+
+        // и навешивает на новый объект три колл-бека:
+
+        // первый вызовется, когда соединение будет установлено:
+        ws.onopen = function() { console.log("Connection opened...") };
+
+        // второй - когда соединено закроется
+        ws.onclose = function() { console.log("Connection closed...") };
+
+        // и, наконец, третий - каждый раз, когда браузер получает какие-то данные через веб-сокет
+
+
+    </script>
+</head>
+<body>
+<style>
+    td {
+        border: 1px solid gray;
+    }
+</style>
+
+<button id="getCardRandom">getCardRandom</button>.
+<button id="getCardStart">getCardStart</button>
+<button id="auth1">auth1</button>
+<button id="auth2">auth2</button>
+<button id="searchGame">searchGame</button>
+<button id="gameWithBot">gameWithBot</button>
+<button id="useCard">useCard</button>
+<button id="discard">discard</button>
+<button id="ready">ready</button>
+<table>
+    <tr>
+        <td>Person</td>
+        <td>Player</td>
+        <td>Opponent</td>
+    </tr>
+    <tr>
+        <td>turn</td>
+        <td id="self_turn"></td>
+        <td id="enemy_turn"></td>
+    </tr>
+    <tr>
+        <td>tower</td>
+        <td id="self_tower_hp"></td>
+        <td id="enemy_tower_hp"></td>
+    </tr>
+    <tr>
+        <td>wall</td>
+        <td id="self_wall_hp"></td>
+        <td id="enemy_wall_hp"></td>
+    </tr>
+    <tr>
+        <td>res1</td>
+        <td id="self_res1"></td>
+        <td id="enemy_res1"></td>
+    </tr>
+    <tr>
+        <td>gen1</td>
+        <td id="self_gen1"></td>
+        <td id="enemy_gen1"></td>
+    </tr>
+    <tr>
+        <td>res2</td>
+        <td id="self_res2"></td>
+        <td id="enemy_res2"></td>
+    </tr>
+    <tr>
+        <td>gen2</td>
+        <td id="self_gen2"></td>
+        <td id="enemy_gen2"></td>
+    </tr>
+    <tr>
+        <td>res3</td>
+        <td id="self_res3"></td>
+        <td id="enemy_res3"></td>
+    </tr>
+    <tr>
+        <td>gen3</td>
+        <td id="self_gen3"></td>
+        <td id="enemy_gen3"></td>
+    </tr>
+</table>
+<table>
+    <tr>
+        <td>Card</td>
+        <td>Player</td>
+        <td>Opponent</td>
+    </tr>
+    <tr>
+        <td>name</td>
+        <td colspan="2" id="card_name"></td>
+    </tr>
+    <tr>
+        <td>cost</td>
+        <td colspan="2" id="card_cost"></td>
+    </tr>
+    <tr>
+        <td>elem</td>
+        <td colspan="2" id="card_elem"></td>
+    </tr>
+    <tr>
+        <td>tower</td>
+        <td id="card_self_tower_hp"></td>
+        <td id="card_enemy_tower_hp"></td>
+    </tr>
+    <tr>
+        <td>wall</td>
+        <td id="card_self_wall_hp"></td>
+        <td id="card_enemy_wall_hp"></td>
+    </tr>
+    <tr>
+        <td>res1</td>
+        <td id="card_self_res1"></td>
+        <td id="card_enemy_res1"></td>
+    </tr>
+    <tr>
+        <td>gen1</td>
+        <td id="card_self_gen1"></td>
+        <td id="card_enemy_gen1"></td>
+    </tr>
+    <tr>
+        <td>res2</td>
+        <td id="card_self_res2"></td>
+        <td id="card_enemy_res2"></td>
+    </tr>
+    <tr>
+        <td>gen2</td>
+        <td id="card_self_gen2"></td>
+        <td id="card_enemy_gen2"></td>
+    </tr>
+    <tr>
+        <td>res3</td>
+        <td id="card_self_res3"></td>
+        <td id="card_enemy_res3"></td>
+    </tr>
+    <tr>
+        <td>gen3</td>
+        <td id="card_self_gen3"></td>
+        <td id="card_enemy_gen3"></td>
+    </tr>
+</table>
+
+<script>
+
+    ws.onmessage = function(evt) {
+        var data = JSON.parse(evt.data);
+        console.log(data);
+
+        switch (data.messageType) {
+            case 'playerStatus':
+                $('#self_turn').text(data.turn);
+                $('#self_tower_hp').text(data.tower_hp);
+                $('#self_wall_hp').text(data.wall_hp);
+                $('#self_res1').text(data.res1);
+                $('#self_res2').text(data.res2);
+                $('#self_res3').text(data.res3);
+                $('#self_gen1').text(data.gen1);
+                $('#self_gen2').text(data.gen2);
+                $('#self_gen3').text(data.gen3);
+                break;
+            case 'opponentStatus':
+                $('#enemy_turn').text(data.turn);
+                $('#enemy_tower_hp').text(data.tower_hp);
+                $('#enemy_wall_hp').text(data.wall_hp);
+                $('#enemy_res1').text(data.res1);
+                $('#enemy_res2').text(data.res2);
+                $('#enemy_res3').text(data.res3);
+                $('#enemy_gen1').text(data.gen1);
+                $('#enemy_gen2').text(data.gen2);
+                $('#enemy_gen3').text(data.gen3);
+                break;
+            case 'getCardRandom':
+                $('#card_name').text(data.card_name);
+                $('#card_cost').text(data.card_cost);
+                $('#card_elem').text(data.card_elem);
+                $('#card_self_tower_hp').text(data.card_self_tower_hp);
+                $('#card_enemy_tower_hp').text(data.card_enemy_tower_hp);
+                $('#card_self_wall_hp').text(data.card_self_wall_hp);
+                $('#card_enemy_wall_hp').text(data.card_enemy_wall_hp);
+                $('#card_self_res1').text(data.card_self_res1);
+                $('#card_self_res2').text(data.card_self_res2);
+                $('#card_self_res3').text(data.card_self_res3);
+                $('#card_self_gen1').text(data.card_self_gen1);
+                $('#card_self_gen2').text(data.card_self_gen2);
+                $('#card_self_gen3').text(data.card_self_gen3);
+                $('#card_enemy_res1').text(data.card_enemy_res1);
+                $('#card_enemy_res2').text(data.card_enemy_res2);
+                $('#card_enemy_res3').text(data.card_enemy_res3);
+                $('#card_enemy_gen1').text(data.card_enemy_gen1);
+                $('#card_enemy_gen2').text(data.card_enemy_gen2);
+                $('#card_enemy_gen3').text(data.card_enemy_gen3);
+                //alert('random');
+                break;
+            case 'getCardOpponent':
+                $('#card_name').text(data.card_name);
+                $('#card_self_tower_hp').text(data.card_self_tower_hp);
+                $('#card_enemy_tower_hp').text(data.card_enemy_tower_hp);
+                $('#card_self_wall_hp').text(data.card_self_wall_hp);
+                $('#card_enemy_wall_hp').text(data.card_enemy_wall_hp);
+                $('#card_self_res1').text(data.card_self_res1);
+                $('#card_self_res2').text(data.card_self_res2);
+                $('#card_self_res3').text(data.card_self_res3);
+                $('#card_self_gen1').text(data.card_self_gen1);
+                $('#card_self_gen2').text(data.card_self_gen2);
+                $('#card_self_gen3').text(data.card_self_gen3);
+                $('#card_enemy_res1').text(data.card_enemy_res1);
+                $('#card_enemy_res2').text(data.card_enemy_res2);
+                $('#card_enemy_res3').text(data.card_enemy_res3);
+                $('#card_enemy_gen1').text(data.card_enemy_gen1);
+                $('#card_enemy_gen2').text(data.card_enemy_gen2);
+                $('#card_enemy_gen3').text(data.card_enemy_gen3);
+                //alert('opponent');
+                break;
+
+        }
+    };
+
+    $('#getCardRandom').click(function () {
+        var message = {
+            messageType: 'getCardRandom'
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#auth1').click(function () {
+        var message = {
+            messageType: 'auth',
+            login: 1,
+            password: 1
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#auth2').click(function () {
+        var message = {
+            messageType: 'auth',
+            login: 2,
+            password: 2
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#searchGame').click(function () {
+        var message = {
+            messageType: 'searchGame'
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#useCard').click(function () {
+        var message = {
+            messageType: 'useCard',
+            card_id: 1,
+            discard: false
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#discard').click(function () {
+        var message = {
+            messageType: 'useCard',
+            card_id: 1,
+            discard: true
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#gameWithBot').click(function () {
+        var message = {
+            messageType: 'gameWithBot'
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#getCardStart').click(function () {
+        var message = {
+            messageType: 'getCardStart'
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+    $('#ready').click(function () {
+        var message = {
+            messageType: 'ready'
+        };
+        message = JSON.stringify(message);
+        ws.send(message);
+    });
+</script>
+</body>
+</html>

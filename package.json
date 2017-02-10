@@ -1,0 +1,25 @@
+{
+  "name": "arcomage_server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Nikita Belousov",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.1.2",
+    "body-parser": "^1.15.2",
+    "cheerio": "^0.22.0",
+    "consolidate": "^0.14.1",
+    "express.js": "^1.0.0",
+    "handlebars": "^4.0.5",
+    "mysql": "^2.11.1",
+    "request": "^2.75.0",
+    "socket.io": "^1.5.0",
+    "string_decoder": "^0.10.31",
+    "websocket": "^1.0.23",
+    "ws": "^1.1.1"
+  }
+}

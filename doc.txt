@@ -1,0 +1,10 @@
+Виды сообщений от сервера:
+
+gameStart
+startStatus
+playerStatus
+opponentStatus
+getCardRandom
+getCardOpponent
+auth
+error
