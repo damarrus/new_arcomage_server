@@ -221,20 +221,11 @@ class Game {
         let player = socket.player;
 
         player.collection.deleteDeck(deck_num, function (result) {
-            if (result == true) {
-                messenger.send(socket, "deleteDeck", {valid:true});
-            } else {
-                messenger.send(socket, "error", {
-                    method: "deleteDeck",
-                    typeError: result
-                });
-            }
+            (result == true) ? Messenger.send(socket, "deleteDeck", {valid:true}) :
+                Messenger.send(socket, "error", {method: "deleteDeck", typeError: result});
         });
     } else {
-        messenger.send(socket, "error", {
-            method: "deleteDeck",
-            typeError: "notAuth"
-        });
+        Messenger.send(socket, "error", {method: "deleteDeck", typeError: "notAuth"});
     }
 };
 }

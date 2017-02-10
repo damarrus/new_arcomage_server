@@ -26,18 +26,21 @@ class Collection {
                 if (count >= arr.length) {
                     query = 'SELECT deck_id, deck_num, deck_name FROM deck WHERE player_id='+player_id;
                     db.query(query, function(err, result) {
-
-                        let count_deck = 0;
-                        result.forEach(function (deck_info, i, arr) {
-                            let deck = new Deck(self.cardsArr, self.player_id);
-                            deck.loadDeck(deck_info.deck_id, deck_info.deck_num, deck_info.deck_name, function () {
-                                ++count_deck;
-                                self.decks.push(deck);
-                                if (count_deck >= arr.length) {
-                                    callback();
-                                }
+                        if (result != null) {
+                            let count_deck = 0;
+                            result.forEach(function (deck_info, i, arr) {
+                                let deck = new Deck(self.cardsArr, self.player_id);
+                                deck.loadDeck(deck_info.deck_id, deck_info.deck_num, deck_info.deck_name, function () {
+                                    ++count_deck;
+                                    self.decks.push(deck);
+                                    if (count_deck >= arr.length) {
+                                        callback();
+                                    }
+                                });
                             });
-                        });
+                        } else {
+                            callback();
+                        }
                     });
                 }
             });
@@ -49,9 +52,25 @@ class Collection {
         return (deck.num == deck_num) ? deck : false;
     }
 
+    _getDeckByNum(deck_num, callback) {
+        this.decks.forEach(function (deck, i, arr) {
+            if (deck.num == deck_num) {
+                callback(deck);
+            }
+        });
+    }
+
     createDeck(deck_name, card_ids, callback) {
+        let self = this;
+
         let deck = new Deck(this.cardsArr, this.player_id);
-        deck.newDeck(deck_name, card_ids, callback);
+        deck.newDeck(deck_name, card_ids, function (result) {
+            callback(result);
+            self.decks.push(deck);
+            for (let i = 0; i < self.decks.length; ++i) {
+                console.log(self.decks[i].num);
+            }
+        });
     }
 
     deleteDeck(deck_num, callback) {
@@ -61,20 +80,33 @@ class Collection {
         if (deck) {
             deck.deleteDeck(function (result) {
                 if (result == true) {
-                    self.decks.splice(self.decks.indexOf(deck), 1);
-                    deck = null;
                     let query = "SELECT count(deck_num) as count_deck FROM deck " +
                         "WHERE player_id='"+self.player_id+"' AND deck_num > '"+deck_num+"'";
                     db.query(query, function(err, result) {
-                        (result[0].count_deck > 0) ? self._switchDeckNum(callback, result[0].count_deck, deck_num) :
+                        if (result[0].count_deck > 0) {
+                            self._switchDeckNum(function (result) {
+                                self.decks.splice(self.decks.indexOf(deck), 1);
+                                deck = null;
+                                for (let i = 0; i < self.decks.length; ++i) {
+                                    console.log(self.decks[i].num);
+                                }
+                                callback(result);
+                            }, result[0].count_deck, deck_num);
+                        } else {
+                            self.decks.splice(self.decks.indexOf(deck), 1);
+                            deck = null;
+                            for (let i = 0; i < self.decks.length; ++i) {
+                                console.log(self.decks[i].num);
+                            }
                             callback(true);
+                        }
                     });
                 } else {
                     callback(result);
                 }
             });
         } else {
-            callback('serverErrorDeckNumNotEqual');
+            callback('serverErrorDeckNumNotEqual, deleteDeck');
         }
     };
 
@@ -92,18 +124,14 @@ class Collection {
         callback(true);
     } else {
         let self = this;
-
         ++count;
         let query = "UPDATE deck SET deck_num = '"+ (deck_num + count - 1) +"' " +
             "WHERE player_id='"+self.player_id+"' AND deck_num = '"+ (deck_num + count) +"'";
         db.query(query, function(err, result) {
-            let deck = self.getDeckByNum(deck_num);
-            if (deck) {
+            self._getDeckByNum(deck_num, function (deck) {
                 deck.num = deck_num + count - 1;
                 self._switchDeckNum(callback, count_deck, deck_num, count);
-            } else {
-                callback('serverErrorDeckNumNotEqual')
-            }
+            });
         });
     }
 }
