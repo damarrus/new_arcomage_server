@@ -95,22 +95,6 @@ class Collection {
                     } else {
                         callback(true);
                     }
-
-                    /*let query = "SELECT count(deck_num) as count_deck FROM deck " +
-                        "WHERE player_id='"+self.player_id+"' AND deck_num > '"+deck_num+"'";
-                    db.query(query, function(err, result) {
-                        if (result[0].count_deck > 0) {
-                            self._switchDeckNum(function (result) {
-                                self.decks.splice(self.decks.indexOf(deck), 1);
-                                deck = null;
-                                callback(result);
-                            }, result[0].count_deck, deck_num);
-                        } else {
-                            self.decks.splice(self.decks.indexOf(deck), 1);
-                            deck = null;
-                            callback(true);
-                        }
-                    });*/
                 } else {
                     callback(result);
                 }
