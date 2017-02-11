@@ -15,6 +15,8 @@ let gameconf; require('./gameconf_array').then(function (arr) {gameconf = arr;})
 let cardsArray; require('./cards_array').then(function (cards) {cardsArray = cards;});
 
 let players = [];
+let search = [];
+let matches = [];
 
 class Game {
     constructor() {
@@ -91,43 +93,47 @@ class Game {
      * @param {string} player_password
      */
     auth(socket, player_login, player_password) {
-        if (socket.player) {
-            if (player_login != '' && player_password != '') {
-                let query = "SELECT player_id FROM player " +
-                    "WHERE player_login='"+player_login+"' AND player_password='"+player_password+"' LIMIT 1";
-                db.query(query, function(err, result) {
-                    if (result.length != 0) {
-                        let player_id = result[0].player_id;
-                        let player = new Player(socket);
-                        player.loadPlayerByID(player_id, function () {
-                            Messenger.send(socket, "auth", {valid: true, player_name: player.player_name});
-                        });
-                        socket.player = player;
-                        players.push(player);
-                    } else {
-                        Messenger.send(socket, "auth", {valid: false});
-                    }
-                });
-            } else {
-                Messenger.send(socket, "auth", {valid: false});
-            }
-        } else {
-            Messenger.send(socket, "error", {method: "auth", typeError: "alreadyAuth"});
-        }
+        if (!socket.player)
+            return Messenger.send(socket, "error", {method: "auth", typeError: "alreadyAuth"});
+
+        if (player_login == '' || player_password == '')
+            return Messenger.send(socket, "auth", {valid: false});
+
+        let query = "SELECT player_id FROM player " +
+            "WHERE player_login='"+player_login+"' AND player_password='"+player_password+"' LIMIT 1";
+        db.query(query, function(err, result) {
+            if (result.length == 0)
+                return Messenger.send(socket, "auth", {valid: false});
+
+            let player_id = result[0].player_id;
+            let player = new Player(socket);
+            player.loadPlayerByID(player_id, function () {
+                socket.player = player;
+                players.push(player);
+                return Messenger.send(socket, "auth", {valid: true, player_name: player.name});
+            });
+        });
     };
 
     /**
      * Деавторизует игрока.
      * @param {Socket} socket
+     * @return
      */
     unAuth(socket) {
-    if (socket.player) {
+        if (!socket.player) {
+            return Messenger.send(socket, "error", {method: "unAuth", typeError: "notAuth"});
+        }
+
+        let player = socket.player;
+
+        if (player.inSearch) {
+            search.splice(players.indexOf(socket.player), 1);
+        }
+
         players.splice(players.indexOf(socket.player), 1);
         socket.player = null;
-        Messenger.send(socket, "unAuth", {valid: true});
-    } else {
-        Messenger.send(socket, "error", {method: "unAuth", typeError: "notAuth"});
-    }
+        return Messenger.send(socket, "unAuth", {valid: true});
 };
 
     /**
@@ -140,8 +146,9 @@ class Game {
             Messenger.send(socket, "checkHash", {valid:false, hash:db_hash});
             Messenger.send(socket, "getDatabaseCardsCount", {value:cardsArray.length});
             Messenger.multipleSend(socket, "getDatabaseCards", cardsArray);
+            return;
         } else {
-            Messenger.send(socket, "checkHash", {valid:true});
+            return Messenger.send(socket, "checkHash", {valid:true});
         }
     };
 
@@ -150,146 +157,131 @@ class Game {
      * @param {Socket} socket
      */
     getCollection(socket) {
-        if (socket.player) {
+        if (!socket.player)
+            return Messenger.send(socket, "error", {method: "getCollection", typeError: "notAuth"});
 
-            let player = socket.player;
+        let player = socket.player;
 
-            Messenger.send(socket, "getCollectionCardsCount", {value:player.collection.cardsArr.length});
-            Messenger.arraySend(socket, "getCollectionCards", player.collection.cardsArr);
-            Messenger.send(socket, "getDecksCount", {value:player.collection.decks.length});
+        Messenger.send(socket, "getCollectionCardsCount", {value:player.collection.cardsArr.length});
+        Messenger.arraySend(socket, "getCollectionCards", player.collection.cardsArr);
+        Messenger.send(socket, "getDecksCount", {value:player.collection.decks.length});
 
-            player.collection.decks.forEach(function (deck, i, arr) {
-                Messenger.arraySend(socket, "getDeck", deck.cardsArr, deck.getDeckInfo());
-            });
-
-        } else {
-            Messenger.send(socket, "error", {method: "getCollection", typeError: "notAuth"});
-        }
+        player.collection.decks.forEach(function (deck, i, arr) {
+            Messenger.arraySend(socket, "getDeck", deck.cardsArr, deck.getDeckInfo());
+        });
     };
 
     setDeckCards(socket, deck_num, card_ids) {
-    if (socket.player) {
-        let player = socket.player;
+    if (!socket.player)
+        return Messenger.send(socket, "error", {method: "setDeckCards", typeError: "notAuth"});
 
-        let deck = player.collection.getDeckByNum();
-        if (deck) {
-            card_ids = card_ids.split(',').map(Number);
-            deck.setDeckCards(card_ids, function (result) {
-                (result == true) ? Messenger.send(socket, "setDeckCards", {valid:true}) :
-                    Messenger.send(socket, "error", {method: "setDeckCards", typeError: result});
-            });
-        } else {
-            Messenger.send(socket, "error", {method: "setDeckCards", typeError: "serverErrorDeckNumNotEqual"});
-        }
-    } else {
-        Messenger.send(socket, "error", {method: "setDeckCards", typeError: "notAuth"});
-    }
+    let player = socket.player;
+
+    let deck = player.collection.getDeckByNum(deck_num);
+    if (!deck)
+        return Messenger.send(socket, "error", {method: "setDeckCards", typeError: "serverErrorDeckNumNotEqual"});
+
+    card_ids = card_ids.split(',').map(Number);
+    deck.setDeckCards(card_ids, function (result) {
+        return (result == true) ? Messenger.send(socket, "setDeckCards", {valid:true}) :
+            Messenger.send(socket, "error", {method: "setDeckCards", typeError: result});
+    });
 };
 
     setDeckName(socket, deck_num, deck_name) {
-        if (socket.player) {
-            let player = socket.player;
-
-            let deck = player.collection.getDeckByNum(deck_num);
-            if (deck) {
-                deck.setDeckName(deck_name, function (result) {
-                    (result == true) ? Messenger.send(socket, "setDeckName", {valid:true}) :
-                        Messenger.send(socket, "error", {method: "setDeckName", typeError: result});
-                });
-            } else {
-                Messenger.send(socket, "error", {method: "setDeckName", typeError: "serverErrorDeckNumNotEqual"});
-            }
-        } else {
+        if (!socket.player)
             Messenger.send(socket, "error", {method: "setDeckName", typeError: "notAuth"});
-        }
+
+
+        let player = socket.player;
+
+        let deck = player.collection.getDeckByNum(deck_num);
+        if (deck)
+            Messenger.send(socket, "error", {method: "setDeckName", typeError: "serverErrorDeckNumNotEqual"});
+
+        deck.setDeckName(deck_name, function (result) {
+            return (result == true) ? Messenger.send(socket, "setDeckName", {valid:true}) :
+                Messenger.send(socket, "error", {method: "setDeckName", typeError: result});
+        });
     };
 
     createDeck(socket, deck_name, card_ids) {
-        if (socket.player) {
-            let player = socket.player;
-
-            card_ids = card_ids.split(',').map(Number);
-            player.collection.createDeck(deck_name, card_ids, function (result) {
-                (result == true) ? Messenger.send(socket, "createDeck", {valid:true}) :
-                    Messenger.send(socket, "error", {method: "createDeck", typeError: result});
-            });
-        } else {
+        if (!socket.player)
             Messenger.send(socket, "error", {method: "createDeck", typeError: "notAuth"});
-        }
+
+        let player = socket.player;
+
+        card_ids = card_ids.split(',').map(Number);
+        player.collection.createDeck(deck_name, card_ids, function (result) {
+            return (result == true) ? Messenger.send(socket, "createDeck", {valid:true}) :
+                Messenger.send(socket, "error", {method: "createDeck", typeError: result});
+        });
     };
 
     deleteDeck(socket, deck_num) {
-        if (socket.player) {
-            let player = socket.player;
+        if (!socket.player)
+            Messenger.send(socket, "error", {method: "createDeck", typeError: "notAuth"});
 
-            player.collection.deleteDeck(deck_num, function (result) {
-                (result == true) ? Messenger.send(socket, "deleteDeck", {valid:true}) :
-                    Messenger.send(socket, "error", {method: "deleteDeck", typeError: result});
-            });
-        } else {
-            Messenger.send(socket, "error", {method: "deleteDeck", typeError: "notAuth"});
-        }
+        let player = socket.player;
+
+        player.collection.deleteDeck(deck_num, function (result) {
+            return (result == true) ? Messenger.send(socket, "deleteDeck", {valid:true}) :
+                Messenger.send(socket, "error", {method: "deleteDeck", typeError: result});
+        });
     };
 
     deleteAllDecks(socket) {
-        if (socket.player) {
-            let player = socket.player;
+        if (!socket.player)
+            Messenger.send(socket, "error", {method: "createDeck", typeError: "notAuth"});
 
-            let count = 0;
-            player.collection.decks.forEach(function (deck, i, arr) {
-                ++count;
-                player.collection.deleteDeck(deck.num, function () {});
-                if (count == arr.length) Messenger.send(socket, "deleteAllDecks", {valid:true});
-            });
-        } else {
-            Messenger.send(socket, "error", {method: "deleteAllDecks", typeError: "notAuth"});
-        }
+        let player = socket.player;
+
+        let count = 0;
+        player.collection.decks.forEach(function (deck, i, arr) {
+            ++count;
+            player.collection.deleteDeck(deck.num, function () {});
+            if (count == arr.length) Messenger.send(socket, "deleteAllDecks", {valid:true});
+        });
     };
 
     searchGame(deck_num, socket) {
-    if (!socket.player.getInGame()) {
-        if (!socket.player.getInSearch()) {
-            if (!inSearch[0]) {
-                inSearch.push(socket);
-                socket.player.setInSearch(true);
-                socket.player.setDeckNum(deck_num, function (result) {
-                    messenger.send(socket, "searchGame", {valid:true});
-                });
-            } else {
-                // проверка на полную деку
-                socket.player.setDeckNum(deck_num, function (result) {
-                    if (result) {
-                        console.log('игра найдена');
-                        var opponent = inSearch[0];
-                        inSearch.splice(inSearch.indexOf(opponent), 1);
+        if (!socket.player)
+            return Messenger.send(socket, "error", {method: "searchGame", typeError: "notAuth"});
 
-                        opponent.opponent = socket;
-                        socket.opponent = opponent;
-                        opponent.player.inSearch = false;
+        let player = socket.player;
 
-                        new Match(socket, opponent, gameconf, "searchGame", function (match) {
-                            matches[match.getMatchID()] = match;
-                        });
-                    } else {
-                        messenger.send(socket, "error", {
-                            method: "searchGame",
-                            typeError: "deckIsNotFull"
-                        });
-                    }
-                });
-            }
-        } else {
-            inSearch.splice(inSearch.indexOf(socket), 1);
-            socket.player.setInSearch(false);
-            messenger.send(socket, "searchGame", {valid:false});
+        if (!player.collection.getDeckByNum(deck_num).full)
+            return Messenger.send(socket, "error", {method: "searchGame", typeError: "deckIsNotFull"});
+        if (player.inGame)
+            return Messenger.send(socket, "error", {method: "searchGame", typeError: "alreadyInGame"});
+        // TODO: сделать нормальную отмену поиска
+        if (!player.inSearch) {
+            search.splice(search.indexOf(socket), 1);
+            player.inSearch = false;
+            return Messenger.send(socket, "searchGame", {valid:false});
         }
-    } else {
-        messenger.send(socket, "error", {
-            method: "searchGame",
-            typeError: "alreadyInGame"
+
+        // Встаём в поиск игры
+        if (!search[0]) {
+            search.push(player);
+            player.inSearch = true;
+            player.gameDeck = deck_num;
+            return Messenger.send(socket, "searchGame", {valid: true});
+        }
+
+        // Игра найдена
+        console.log('игра найдена');
+        let opponent = search[0];
+        search.splice(search.indexOf(opponent), 1);
+
+        /*opponent.opponent = socket;
+        socket.opponent = opponent;*/
+        opponent.inSearch = false;
+
+        new Match(socket, opponent, gameconf, "searchGame", function (match) {
+            matches[match.getMatchID()] = match;
         });
-    }
-};
+    };
 }
 
 function old_Game() {

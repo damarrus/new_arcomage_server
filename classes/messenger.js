@@ -13,6 +13,7 @@ class Messenger {
         data = JSON.stringify(data);
         socket.write(data);
         console.log(data);
+        return true;
     }
 
     static multipleSend(socket, messageType, array = []) {

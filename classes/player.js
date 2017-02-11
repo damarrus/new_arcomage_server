@@ -14,6 +14,10 @@ class Player {
         this.login = '';
         this.socket = socket;
         this.collection = {};
+        this.inGame = false;
+        this.inSearch = false;
+        this.ready = false;
+        this.gameDeckNum = 0;
     }
 
     loadPlayerByID(id, callback) {

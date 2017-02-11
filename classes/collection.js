@@ -53,14 +53,6 @@ class Collection {
         return (deck.num == deck_num) ? deck : false;
     }
 
-    _getDeckByNum(deck_num, callback) {
-        this.decks.forEach(function (deck, i, arr) {
-            if (deck.num == deck_num) {
-                callback(this.decks[i]);
-            }
-        }, this);
-    }
-
     createDeck(deck_name, card_ids, callback) {
         let self = this;
 
@@ -108,38 +100,6 @@ class Collection {
             callback('serverErrorDeckNumNotEqual, deleteDeck');
         }
     };
-
-    /**
-     * Вспомогательная рекурсивная функция.
-     * Приводит в порядок по возрастанию deck_num.
-     * @param {function} callback
-     * @param {int} count_deck
-     * @param {int} deck_num
-     * @param {int} count
-     * @private
-     */
-    _switchDeckNum(callback, count_deck, deck_num, count = 0) {
-    if (count == count_deck) {
-        callback(true);
-    } else {
-        let self = this;
-        ++count;
-        let query = "UPDATE deck SET deck_num = '"+ (deck_num + count - 1) +"' " +
-            "WHERE player_id='"+self.player_id+"' AND deck_num = '"+ (deck_num + count) +"'";
-        db.query(query, function(err, result) {
-            self.decks[deck_num + count-2].num = deck_num + count - 1;
-            console.log('recursive ' + deck_num + count - 1);
-            self._switchDeckNum(callback, count_deck, deck_num, count);
-
-
-            /*self._getDeckByNum(deck_num, function (deck) {
-                deck.num = deck_num + count - 1;
-                console.log('recursive ' + deck.num);
-                self._switchDeckNum(callback, count_deck, deck_num, count);
-            });*/
-        });
-    }
-}
 }
 
 function old_Collection(player_id, callback) {
