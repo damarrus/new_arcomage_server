@@ -68,6 +68,9 @@ class Collection {
         deck.newDeck(deck_name, card_ids, function (result) {
             callback(result);
             self.decks.push(deck);
+            for (let i = 0; i < self.decks.length; ++i) {
+                console.log(self.decks[i].num);
+            }
         });
     }
 
@@ -83,13 +86,15 @@ class Collection {
                     if (self.decks.length > deck_num - 1) {
                         let count = 0;
                         self.decks.forEach(function (deck, i, arr) {
-                            ++count;
                             if (deck.num > deck_num) {
                                 deck.lowerDeckNum(function () {
+                                    ++count;
                                     if (count >= arr.length) {
                                         callback(true);
                                     }
                                 });
+                            } else {
+                                ++count;
                             }
                         });
                     } else {

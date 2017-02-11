@@ -2,6 +2,8 @@
  * Created by nikita on 16.11.2016.
  */
 
+    // TODO: static methods
+    // TODO: проверки на статус игрока
 const async = require('async');
 const Match = require('./match');
 const Player = require('./player');
@@ -217,15 +219,75 @@ class Game {
     };
 
     deleteDeck(socket, deck_num) {
-    if (socket.player) {
-        let player = socket.player;
+        if (socket.player) {
+            let player = socket.player;
 
-        player.collection.deleteDeck(deck_num, function (result) {
-            (result == true) ? Messenger.send(socket, "deleteDeck", {valid:true}) :
-                Messenger.send(socket, "error", {method: "deleteDeck", typeError: result});
-        });
+            player.collection.deleteDeck(deck_num, function (result) {
+                (result == true) ? Messenger.send(socket, "deleteDeck", {valid:true}) :
+                    Messenger.send(socket, "error", {method: "deleteDeck", typeError: result});
+            });
+        } else {
+            Messenger.send(socket, "error", {method: "deleteDeck", typeError: "notAuth"});
+        }
+    };
+
+    deleteAllDecks(socket) {
+        if (socket.player) {
+            let player = socket.player;
+
+            let count = 0;
+            player.collection.decks.forEach(function (deck, i, arr) {
+                ++count;
+                player.collection.deleteDeck(deck.num, function () {});
+                if (count == arr.length) Messenger.send(socket, "deleteAllDecks", {valid:true});
+            });
+        } else {
+            Messenger.send(socket, "error", {method: "deleteAllDecks", typeError: "notAuth"});
+        }
+    };
+
+    searchGame(deck_num, socket) {
+    if (!socket.player.getInGame()) {
+        if (!socket.player.getInSearch()) {
+            if (!inSearch[0]) {
+                inSearch.push(socket);
+                socket.player.setInSearch(true);
+                socket.player.setDeckNum(deck_num, function (result) {
+                    messenger.send(socket, "searchGame", {valid:true});
+                });
+            } else {
+                // проверка на полную деку
+                socket.player.setDeckNum(deck_num, function (result) {
+                    if (result) {
+                        console.log('игра найдена');
+                        var opponent = inSearch[0];
+                        inSearch.splice(inSearch.indexOf(opponent), 1);
+
+                        opponent.opponent = socket;
+                        socket.opponent = opponent;
+                        opponent.player.inSearch = false;
+
+                        new Match(socket, opponent, gameconf, "searchGame", function (match) {
+                            matches[match.getMatchID()] = match;
+                        });
+                    } else {
+                        messenger.send(socket, "error", {
+                            method: "searchGame",
+                            typeError: "deckIsNotFull"
+                        });
+                    }
+                });
+            }
+        } else {
+            inSearch.splice(inSearch.indexOf(socket), 1);
+            socket.player.setInSearch(false);
+            messenger.send(socket, "searchGame", {valid:false});
+        }
     } else {
-        Messenger.send(socket, "error", {method: "deleteDeck", typeError: "notAuth"});
+        messenger.send(socket, "error", {
+            method: "searchGame",
+            typeError: "alreadyInGame"
+        });
     }
 };
 }

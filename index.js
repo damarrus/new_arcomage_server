@@ -88,6 +88,9 @@ function socketServer(socket, data) {
             case 'deleteDeck':
                 game.deleteDeck(socket, data['deck_num']);
                 break;
+            case 'deleteAllDecks':
+                game.deleteAllDecks(socket);
+                break;
             case 'newGame':
                 let game_mode = data['game_mode'].split(',');
                 switch(game_mode[0]) {
@@ -130,9 +133,6 @@ function socketServer(socket, data) {
                 break;
             case 'getDeckCards':
                 game.getDeckCards(data['deck_num'], socket);
-                break;
-            case 'deleteAllDecks':
-                game.deleteAllDecks(socket);
                 break;
             case 'buyPack':
                 game.buyPack(data['pack_count'], socket);
