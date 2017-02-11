@@ -138,6 +138,15 @@ class Deck {
     }
 };
 
+    lowerDeckNum(callback) {
+        let self = this;
+        let query = "UPDATE deck SET deck_num='"+ (self.num - 1) +"' WHERE deck_id="+self.id;
+        db.query(query, function(err, result) {
+            --self.num;
+            callback(true);
+        });
+    }
+
     deleteDeck(callback) {
         let self = this;
 

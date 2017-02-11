@@ -26,7 +26,8 @@ class Collection {
                 if (count >= arr.length) {
                     query = 'SELECT deck_id, deck_num, deck_name FROM deck WHERE player_id='+player_id;
                     db.query(query, function(err, result) {
-                        if (result != null) {
+                        // если есть хотя бы одна дека
+                        if (result.length > 0) {
                             let count_deck = 0;
                             result.forEach(function (deck_info, i, arr) {
                                 let deck = new Deck(self.cardsArr, self.player_id);
@@ -55,9 +56,9 @@ class Collection {
     _getDeckByNum(deck_num, callback) {
         this.decks.forEach(function (deck, i, arr) {
             if (deck.num == deck_num) {
-                callback(deck);
+                callback(this.decks[i]);
             }
-        });
+        }, this);
     }
 
     createDeck(deck_name, card_ids, callback) {
@@ -67,9 +68,6 @@ class Collection {
         deck.newDeck(deck_name, card_ids, function (result) {
             callback(result);
             self.decks.push(deck);
-            for (let i = 0; i < self.decks.length; ++i) {
-                console.log(self.decks[i].num);
-            }
         });
     }
 
@@ -80,27 +78,39 @@ class Collection {
         if (deck) {
             deck.deleteDeck(function (result) {
                 if (result == true) {
-                    let query = "SELECT count(deck_num) as count_deck FROM deck " +
+                    self.decks.splice(self.decks.indexOf(deck), 1);
+                    deck = null;
+                    if (self.decks.length > deck_num - 1) {
+                        let count = 0;
+                        self.decks.forEach(function (deck, i, arr) {
+                            ++count;
+                            if (deck.num > deck_num) {
+                                deck.lowerDeckNum(function () {
+                                    if (count >= arr.length) {
+                                        callback(true);
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        callback(true);
+                    }
+
+                    /*let query = "SELECT count(deck_num) as count_deck FROM deck " +
                         "WHERE player_id='"+self.player_id+"' AND deck_num > '"+deck_num+"'";
                     db.query(query, function(err, result) {
                         if (result[0].count_deck > 0) {
                             self._switchDeckNum(function (result) {
                                 self.decks.splice(self.decks.indexOf(deck), 1);
                                 deck = null;
-                                for (let i = 0; i < self.decks.length; ++i) {
-                                    console.log(self.decks[i].num);
-                                }
                                 callback(result);
                             }, result[0].count_deck, deck_num);
                         } else {
                             self.decks.splice(self.decks.indexOf(deck), 1);
                             deck = null;
-                            for (let i = 0; i < self.decks.length; ++i) {
-                                console.log(self.decks[i].num);
-                            }
                             callback(true);
                         }
-                    });
+                    });*/
                 } else {
                     callback(result);
                 }
@@ -128,10 +138,16 @@ class Collection {
         let query = "UPDATE deck SET deck_num = '"+ (deck_num + count - 1) +"' " +
             "WHERE player_id='"+self.player_id+"' AND deck_num = '"+ (deck_num + count) +"'";
         db.query(query, function(err, result) {
-            self._getDeckByNum(deck_num, function (deck) {
+            self.decks[deck_num + count-2].num = deck_num + count - 1;
+            console.log('recursive ' + deck_num + count - 1);
+            self._switchDeckNum(callback, count_deck, deck_num, count);
+
+
+            /*self._getDeckByNum(deck_num, function (deck) {
                 deck.num = deck_num + count - 1;
+                console.log('recursive ' + deck.num);
                 self._switchDeckNum(callback, count_deck, deck_num, count);
-            });
+            });*/
         });
     }
 }
