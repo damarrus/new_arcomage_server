@@ -12,7 +12,6 @@ const net = require('net');
 const async = require('async');
 
 const Game = require('./classes/game');
-const auth = require('./models/auth');
 const carder = require('./classes/carder');
 const Player = require('./classes/player');
 const Match = require('./classes/match');
@@ -26,10 +25,6 @@ console.log("test mode " + isTestClient);
 
 /*let player = new Player();
 player.loadPlayerByID(1, function () {
-    let arr = [];
-    player.collection.decks[0].checkDeckCardsInCollection(arr, function (result) {
-        console.log(result);
-    });
 
 
 });*/
@@ -49,10 +44,13 @@ app.get('/cardcreator', function(req, res){
 app.listen(8000);
 
 let game = new Game();
+game.searcher();
 // Keep track of the chat clients
 let clients = [];
 //var searchGame = [];
-
+game.resetGameStatus(function () {
+    
+});
 // Обработчик сообщений
 function socketServer(socket, data) {
 
@@ -97,24 +95,21 @@ function socketServer(socket, data) {
                     case '0':
                         switch(game_mode[1]) {
                             case '0':
-                                game.searchGame(data['deck_num'], socket);
+                                game.searchGame(socket, false, data['deck_num']);
+                                break;
+                            case '1':
+                                game.searchGame(socket, true, data['deck_num']);
                                 break;
                         }
                         break;
                     case '1':
                         switch(game_mode[1]) {
                             case '0':
-                                game.gameWithBot(data['deck_num'], socket);
+                                game.gameWithBot(socket, data['deck_num']);
                                 break;
                         }
                         break;
                 }
-                break;
-            case 'searchGame':
-                game.searchGame(data['deck_num'], socket);
-                break;
-            case 'gameWithBot':
-                game.gameWithBot(data['deck_num'], socket);
                 break;
             case 'ready':
                 game.startGame(socket);
@@ -128,7 +123,7 @@ function socketServer(socket, data) {
             case 'endTurn':
                 game.endTurn(socket);
                 break;
-            case 'getAllDecks':
+            /*case 'getAllDecks':
                 game.getAllDecks(socket);
                 break;
             case 'getDeckCards':
@@ -136,7 +131,7 @@ function socketServer(socket, data) {
                 break;
             case 'buyPack':
                 game.buyPack(data['pack_count'], socket);
-                break;
+                break;*/
         }
     } catch (e) {
         console.log(e);
@@ -169,8 +164,6 @@ if (isTestClient) {
             console.log(err);
         });
 
-        socket.player = 1;
-
         //socket.setNoDelay(true);
         // Identify this client
         socket.name = 0;//socket.remoteAddress + ":" + socket.remotePort;
@@ -189,6 +182,16 @@ if (isTestClient) {
                     game.endMatch(socket);
                 }
             }*/
+            if (socket.player) {
+                game.players.splice(game.players.indexOf(socket.player), 1);
+                if (socket.player.match) {
+                    socket.player.match.getOpponent(socket.player.id);
+                    game.endMatch(socket, socket.player.match.getOpponent(socket.player.id), function () {
+
+                    });
+                }
+            }
+            socket.player.disconnect(function () {});
             clients.splice(clients.indexOf(socket), 1);
             console.log('client left');
         });

@@ -9,6 +9,8 @@ class Messenger {
     }
 
     static send(socket, messageType, data = {}) {
+        if (!socket) return false;
+
         data.messageType = messageType;
         data = JSON.stringify(data);
         socket.write(data);

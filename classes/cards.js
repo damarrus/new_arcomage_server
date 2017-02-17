@@ -12,6 +12,7 @@ let promise = new Promise(function (resolve, reject) {
     db.query(query, function(err, result) {
         if (err == null) {
             // TODO: forEach
+            cards.push(new Card());
             for (let i = 0; i < result.length; i++) {
                 cards.push(new Card(result[i]));
             }

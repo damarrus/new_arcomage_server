@@ -6,18 +6,38 @@ const Collection = require('./collection');
 const carder = require('./carder');
 const Messenger = require('./messenger');
 const db = require('./db');
+let gameconf; require('./gameconf_array').then(function (arr) {gameconf = arr;});
 
 class Player {
     constructor(socket = false) {
         this.id = 0;
         this.name = '';
         this.login = '';
+        this.gold = 0;
+        this.rating = 0;
         this.socket = socket;
         this.collection = {};
         this.inGame = false;
         this.inSearch = false;
         this.ready = false;
+
+        this.match = {};
         this.gameDeckNum = 0;
+        this.changedStartCards = false;
+        this.turn = false;
+        this.timerID = 0;
+        this.deckCards = [];
+        this.handCards = [];
+        this.discardPileCards = [];
+
+        this.tower_hp = 0;
+        this.wall_hp = 0;
+        this.res1 = 0;
+        this.res2 = 0;
+        this.res3 = 0;
+        this.gen1 = 0;
+        this.gen2 = 0;
+        this.gen3 = 0;
     }
 
     loadPlayerByID(id, callback) {
@@ -25,16 +45,293 @@ class Player {
         let query = 'SELECT * FROM player WHERE player_id='+id+' LIMIT 1';
         db.query(query, function(err, result) {
             if (err == null) {
+
                 self.id = result[0]['player_id'];
                 self.name = result[0]['player_name'];
                 self.login = result[0]['player_login'];
-                self.collection = new Collection(self.id, callback);
+                self.gold = result[0]['player_rating'];
+                self.rating = result[0]['player_rating'];
+
+                if (result[0]['player_online'] == 0) {
+                    let query = "UPDATE player SET player_online = 1 WHERE player_id = '"+self.id+"'";
+                    db.query(query, function(err, result) {
+                        self.collection = new Collection(self.id, callback);
+                    });
+                } else {
+                    self.collection = new Collection(self.id, callback);
+                }
             } else {
                 console.error('Ошибка базы данных. Метод loadPlayerByID');
             }
         });
     };
 
+    loadBot(callback) {
+        this.name = 'bot';
+        this.login = 'bot_login';
+        this.ready = true;
+        this.changedStartCards = true;
+        this.gameDeckNum = 1;
+        this.deckCards = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+        callback();
+    }
+
+    setGameDeck(callback) {
+        // проверка на бота
+        if (this.id != 0) {
+            let self = this;
+            let deck = this.collection.getDeckByNum(this.gameDeckNum);
+            let count = 0;
+            deck.cardsArr.forEach(function (card_id, i, arr) {
+                ++count;
+                self.deckCards.push(card_id);
+                if (count == arr.length)
+                    callback(true);
+            });
+        } else {
+            callback(true);
+        }
+    }
+
+    setStartCardsToHand(callback = function() {}) {
+        let self = this;
+        this.handCards = [0,0,0,0,0,0];
+        let count = 0;
+        this.handCards.forEach(function (item, i, arr) {
+            self.handCards.splice(0,1);
+            self.setRandomCardFromDeckToHand(function () {
+                ++count;
+                if (count == arr.length)
+                    callback(true);
+            });
+
+        });
+    }
+
+    setRandomCardFromDeckToHand(callback) {
+        let i = Math.floor(Math.random() * this.deckCards.length);
+        this.handCards.push(this.deckCards[i]);
+        Messenger.send(this.socket, "getCardRandom", {card_id: this.deckCards[i]});
+        this.deckCards.splice(i,1);
+        if (this.deckCards.length == 0) {
+            this.reshuffleDiscardPile(function (result) {
+                callback();
+            });
+        } else {
+            callback();
+        }
+    }
+
+    setCardFromHandToDeck(card_id) {
+        this.handCards.splice(this.handCards.indexOf(card_id),1);
+        this.deckCards.push(card_id);
+    }
+
+    getRandomCardFromHand() {
+        return this.handCards[Math.floor(Math.random() * this.handCards.length)];
+    };
+
+    reshuffleDiscardPile(callback) {
+        let self = this;
+
+        if (self.deckCards.length == 0) {
+            let count = 0;
+            self.discardPileCards.forEach(function (item, i, arr) {
+                ++count;
+                self.deckCards.push(item);
+                if (count == self.discardPileCards.length) {
+                    self.discardPileCards = [];
+                    callback(true);
+                }
+            });
+        } else {
+            callback(false);
+        }
+    }
+
+    /**
+     * @param {Array} card_ids
+     * @param callback
+     */
+    isCardsInHand(card_ids, callback) {
+        if (card_ids.length == 0) {
+            callback(true);
+            return;
+        }
+
+        let result = true;
+        let count = 0;
+        card_ids.forEach(function (card_id, i, arr) {
+            ++count;
+            if (this.handCards.indexOf(card_id) == -1) result = 'cardsNotFoundInHand';
+            if (count >= arr.length) callback(result);
+        }, this);
+    }
+
+    changeStartCards(card_ids, callback) {
+        if (card_ids.length == 0) {
+            callback(true);
+            return;
+        }
+        let self = this;
+
+        let count = 0;
+        card_ids.forEach(function (card_id, i, arr) {
+            self.setRandomCardFromDeckToHand(function () {
+                ++count;
+                if (count == card_ids.length) {
+                    count = 0;
+                    card_ids.forEach(function (card_id, i, arr) {
+                        ++count;
+                        self.setCardFromHandToDeck(card_id);
+                        if (count == card_ids.length) {
+                            callback(true);
+                        }
+                    });
+                }
+            });
+        });
+    };
+
+    changeCardFromHand(card_id, callback) {
+        let self = this;
+
+        let count = 0;
+        self.handCards.forEach(function (item, i, arr) {
+            if (count == 0 && item == card_id) {
+                ++count;
+                self.discardPileCards.push(item);
+                self.handCards.splice(i,1);
+                self.setRandomCardFromDeckToHand(callback);
+            }
+        });
+    };
+
+    setStartPlayerStatus() {
+        this.tower_hp = gameconf.tower_hp;
+        this.wall_hp = gameconf.wall_hp;
+        this.res1 = gameconf.res;
+        this.res2 = gameconf.res;
+        this.res3 = gameconf.res;
+        this.gen1 = gameconf.gen;
+        this.gen2 = gameconf.gen;
+        this.gen3 = gameconf.gen;
+    }
+
+    // TODO: сделать проверку на победу
+    changePlayerStatusByCard(owner, card) {
+        this.tower_hp += (owner) ? card.self_tower_hp : card.enemy_tower_hp;
+        this.wall_hp += (owner) ? card.self_wall_hp : card.enemy_wall_hp;
+        if (this.wall_hp < 0) {
+            this.wall_hp = 0;
+        }
+        this.wall_hp += (owner) ? card.self_hp : card.enemy_hp;
+        if (this.wall_hp < 0) {
+            this.tower_hp += this.wall_hp;
+            this.wall_hp = 0;
+        }
+
+        let res1 = (owner) ? card.self_res1 : card.enemy_res1;
+        let res2 = (owner) ? card.self_res2 : card.enemy_res2;
+        let res3 = (owner) ? card.self_res3 : card.enemy_res3;
+
+        let gen1 = (owner) ? card.self_gen1 : card.enemy_gen1;
+        let gen2 = (owner) ? card.self_gen2 : card.enemy_gen2;
+        let gen3 = (owner) ? card.self_gen3 : card.enemy_gen3;
+
+        this.res1 = ((this.res1 + res1) >= 0) ? (this.res1 + res1) : 0;
+        this.res2 = ((this.res2 + res2) >= 0) ? (this.res2 + res2) : 0;
+        this.res3 = ((this.res3 + res3) >= 0) ? (this.res3 + res3) : 0;
+
+        this.gen1 = ((this.gen1 + gen1) >= 1) ? (this.gen1 + gen1) : 1;
+        this.gen2 = ((this.gen2 + gen2) >= 1) ? (this.gen2 + gen2) : 1;
+        this.gen3 = ((this.gen3 + gen3) >= 1) ? (this.gen3 + gen3) : 1;
+        return true;
+    }
+
+    getPlayerStatus() {
+        return {
+            turn: this.turn,
+            tower_hp: this.tower_hp,
+            wall_hp: this.wall_hp,
+            res1: this.res1,
+            res2: this.res2,
+            res3: this.res3,
+            gen1: this.gen1,
+            gen2: this.gen2,
+            gen3: this.gen3
+        }
+    }
+
+    growthRes() {
+        this.res1 += this.gen1;
+        this.res2 += this.gen2;
+        this.res3 += this.gen3;
+    };
+
+    consumingResByCard(card) {
+        if (this.res1 - card.res1 < 0 || this.res2 - card.res2 < 0 || this.res3 - card.res3 < 0) {
+            return false;
+        } else {
+            this.res1 -= card.res1;
+            this.res2 -= card.res2;
+            this.res3 -= card.res3;
+            return true;
+        }
+    }
+
+    setTurn(value) {
+        let self = this;
+
+        if (value) {
+            this.turn = true;
+            this.growthRes();
+            this.timerID = setTimeout(function () {
+                self.match.endTurn(self.id, true);
+            }, 45000);
+        } else {
+            this.turn = false;
+            clearTimeout(this.timerID);
+        }
+    }
+
+    resetPlayerStatus() {
+        this.inGame = false;
+        this.ready = false;
+        this.match = null;
+        this.gameDeckNum = 0;
+        this.changedStartCards = false;
+        this.turn = false;
+        this.deckCards = [];
+        this.handCards = [];
+        this.discardPileCards = [];
+
+        this.tower_hp = 0;
+        this.wall_hp = 0;
+        this.res1 = 0;
+        this.res2 = 0;
+        this.res3 = 0;
+        this.gen1 = 0;
+        this.gen2 = 0;
+        this.gen3 = 0;
+
+        if (this.timerID) {
+            clearTimeout(this.timerID);
+        }
+    }
+
+    disconnect(callback) {
+        let self = this;
+
+        let query = "UPDATE player SET player_online = 0 WHERE player_id = '"+self.id+"'";
+        db.query(query, function(err, result) {
+            if (err == null) {
+                callback();
+            } else {
+                console.error('Ошибка базы данных. Метод disconnect');
+            }
+        });
+    }
 }
 
 function old_Player(info = {}, socket = false, callback = function () {}) {
@@ -140,7 +437,7 @@ function old_Player(info = {}, socket = false, callback = function () {}) {
             callback();
         }
     }
-    
+
     function reshuffleDiscardPile(callback) {
         var count = 0;
         deckCards = [];
@@ -231,44 +528,6 @@ function old_Player(info = {}, socket = false, callback = function () {}) {
         });
     };
 
-    this.setInSearch = function (bool) {inSearch = bool;};
-    this.getInSearch = function () {return inSearch;};
-    this.setReady = function (bool) {ready = bool;};
-    this.getReady = function () {return ready;};
-    this.setChangeReady = function (bool) {changeReady = bool;};
-    this.getChangeReady = function () {return changeReady;};
-    this.setInGame = function (bool) {inGame = bool;};
-    this.getInGame = function () {return inGame;};
-    this.getParam = function (type) {
-        switch (type) {
-            case 'turn':return turn;
-            case 'tower_hp':return tower_hp;
-            case 'wall_hp':return wall_hp;
-            case 'res1':return res1;
-            case 'res2':return res2;
-            case 'res3':return res3;
-            case 'gen1':return gen1;
-            case 'gen2':return gen2;
-            case 'gen3':return gen3;
-            case 'player_id':return player_id;
-            case 'player_name':return player_name;
-            case 'player_login':return player_login;
-        }
-    };
-    this.setParam = function (type, value) {
-        switch (type) {
-            case 'turn':turn = value; break;
-            case 'tower_hp':tower_hp = value; break;
-            case 'wall_hp':wall_hp = value; break;
-            case 'res1':res1 = value; break;
-            case 'res2':res2 = value; break;
-            case 'res3':res3 = value; break;
-            case 'gen1':gen1 = value; break;
-            case 'gen2':gen2 = value; break;
-            case 'gen3':gen3 = value; break;
-            case 'player_id':player_id = value; break;
-        }
-    };
     this.getPlayerStatus = function () {
         return {
             turn: turn,
