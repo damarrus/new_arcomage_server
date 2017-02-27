@@ -7,6 +7,7 @@ const async = require('async');
 
 const maxCardsInDeck = 20;
 
+// TODO: сделать проверку на дубли в деке
 class Deck {
     constructor(collectionCardsArr, player_id) {
         this.id = 0;

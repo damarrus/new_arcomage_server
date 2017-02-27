@@ -423,13 +423,37 @@ class Game {
         });
     };
 
+    endTurn(socket) {
+        if (!socket.player)
+            return Messenger.send(socket, "error", {method: "useCard", typeError: "notAuth"});
+
+        let player = socket.player;
+
+        if (!player.inGame)
+            return Messenger.send(socket, "error", {method: "useCard", typeError: "notInGame"});
+
+        if (!player.turn)
+            return Messenger.send(socket, "error", {method: "useCard", typeError: "notYourTurn"});
+
+        let self = this;
+
+        /*matches[socket.matchID].endTurn(socket.player.getParam('player_id'), false, function (result) {
+            if (result == 1 || result == 2 || result == 3) {
+                console.log('победил игрок ' + result);
+                matches[socket.matchID].endMatch(result, function () {
+                    matches.splice(socket.matchID, 1);
+                });
+            }
+        });*/
+    };
+
     endMatch(socket, player_id, callback) {
         this.matches.splice(this.matches.indexOf(socket.player.match), 1);
         socket.player.match.endMatch(player_id, 1, function () {
             console.log('Матч окончен');
             callback();
         });
-    }
+    };
 
     disconnectPlayer() {
 

@@ -21,11 +21,10 @@ class Player {
         this.inSearch = false;
         this.ready = false;
 
-        this.match = {};
+        this.match = false;
         this.gameDeckNum = 0;
         this.changedStartCards = false;
         this.turn = false;
-        this.timerID = 0;
         this.deckCards = [];
         this.handCards = [];
         this.discardPileCards = [];
@@ -286,12 +285,8 @@ class Player {
         if (value) {
             this.turn = true;
             this.growthRes();
-            this.timerID = setTimeout(function () {
-                self.match.endTurn(self.id, true);
-            }, 45000);
         } else {
             this.turn = false;
-            clearTimeout(this.timerID);
         }
     }
 
@@ -299,6 +294,7 @@ class Player {
         this.inGame = false;
         this.ready = false;
         this.match = null;
+        this.match = false;
         this.gameDeckNum = 0;
         this.changedStartCards = false;
         this.turn = false;
@@ -314,10 +310,6 @@ class Player {
         this.gen1 = 0;
         this.gen2 = 0;
         this.gen3 = 0;
-
-        if (this.timerID) {
-            clearTimeout(this.timerID);
-        }
     }
 
     disconnect(callback) {

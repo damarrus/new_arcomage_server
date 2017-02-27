@@ -7,7 +7,7 @@ const db = mysql.createConnection({
     host : 'localhost',
     database : 'arcomage',
     user : 'root',
-    password : '',
+    password : '123456',
     multipleStatements: true
 });
 db.connect(function(err) {

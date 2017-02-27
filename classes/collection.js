@@ -61,9 +61,10 @@ class Collection {
         deck.newDeck(deck_name, card_ids, function (result) {
             callback(result);
             self.decks.push(deck);
-            for (let i = 0; i < self.decks.length; ++i) {
+            // Вывод дек нумов
+            /*for (let i = 0; i < self.decks.length; ++i) {
                 console.log(self.decks[i].num);
-            }
+            }*/
         });
     }
 
@@ -71,7 +72,8 @@ class Collection {
         let self = this;
 
         let deck = this.getDeckByNum(deck_num);
-        if (deck) {
+
+        if (deck == false) {
             callback('serverErrorDeckNumNotEqual, deleteDeck');
             return;
         }
@@ -85,7 +87,7 @@ class Collection {
             self.decks.splice(self.decks.indexOf(deck), 1);
             deck = null;
 
-            if (self.decks.length > deck_num - 1) {
+            if (self.decks.length <= deck_num - 1) {
                 callback(true);
                 return;
             }
