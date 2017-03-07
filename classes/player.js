@@ -238,6 +238,10 @@ class Player {
         let gen2 = (owner) ? card.self_gen2 : card.enemy_gen2;
         let gen3 = (owner) ? card.self_gen3 : card.enemy_gen3;
 
+        let gen1_equally = (owner) ? card.self_gen1_equally : card.enemy_gen1_equally;
+        let gen2_equally = (owner) ? card.self_gen2_equally : card.enemy_gen2_equally;
+        let gen3_equally = (owner) ? card.self_gen3_equally : card.enemy_gen3_equally;
+
         this.res1 = ((this.res1 + res1) >= 0) ? (this.res1 + res1) : 0;
         this.res2 = ((this.res2 + res2) >= 0) ? (this.res2 + res2) : 0;
         this.res3 = ((this.res3 + res3) >= 0) ? (this.res3 + res3) : 0;
@@ -245,6 +249,11 @@ class Player {
         this.gen1 = ((this.gen1 + gen1) >= 1) ? (this.gen1 + gen1) : 1;
         this.gen2 = ((this.gen2 + gen2) >= 1) ? (this.gen2 + gen2) : 1;
         this.gen3 = ((this.gen3 + gen3) >= 1) ? (this.gen3 + gen3) : 1;
+
+        this.gen1 = gen1_equally;
+        this.gen2 = gen2_equally;
+        this.gen3 = gen3_equally;
+
         return true;
     }
 
@@ -269,7 +278,7 @@ class Player {
     };
 
     consumingResByCard(card) {
-        if (this.res1 - card.res1 < 0 || this.res2 - card.res2 < 0 || this.res3 - card.res3 < 0) {
+        if (this.isEnoughResForCard(card)) {
             return false;
         } else {
             this.res1 -= card.res1;
@@ -277,6 +286,10 @@ class Player {
             this.res3 -= card.res3;
             return true;
         }
+    }
+
+    isEnoughResForCard(card) {
+        return (this.res1 - card.res1 < 0 || this.res2 - card.res2 < 0 || this.res3 - card.res3 < 0);
     }
 
     setTurn(value) {

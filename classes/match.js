@@ -81,7 +81,7 @@ class Match {
                 self.player1.setStartCardsToHand();
                 self.player2.setStartCardsToHand();
 
-                this.turnTimerID = setTimeout(function () {
+                self.turnTimerID = setTimeout(function () {
                     self.sendStartStatus();
                 }, self.baseTimer);
             });
@@ -228,7 +228,7 @@ class Match {
         let bot = self.player2;
 
         self.botTimerID = setTimeout(function () {
-            let card = cards[bot.getRandomCardFromHand()];
+            let card = self.getCardFromBotHand();
 
             if (bot.consumingResByCard(card)) {
 
@@ -282,9 +282,61 @@ class Match {
         }, 2000);
     }
 
-    // TODO: ИИ для выбора карт
     getCardFromBotHand() {
+        let bot = this.player2;
+        let player = this.player1;
+        let self = this;
 
+        let availableCards = [];
+
+        // выбираем карты на которые хватает ресурсов
+        bot.handCards.forEach(function (card_id, i, arr) {
+            if (bot.isEnoughResForCard(cards[card_id])) {
+                availableCards.push(cards[card_id]);
+            }
+        });
+
+        if (availableCards.length > 0) {
+
+            if (availableCards.length == 1)
+                return availableCards[0];
+
+            let strategy;
+
+            // выбор защитной или атакующей стратегии
+            if ((bot.tower_hp + bot.wall_hp) >= (player.tower_hp + player.wall_hp)) {
+                strategy = 0;
+            } else {
+                strategy = 1;
+            }
+
+            let currentCard = false;
+
+            switch (strategy) {
+                case 0:
+                    availableCards.forEach(function (card, i, arr) {
+                        if (currentCard == false) {
+                            currentCard = card;
+                        } else if (Math.abs(card.enemy_tower_hp) >= Math.abs(currentCard.enemy_tower_hp)) {
+                            currentCard = card;
+                        }
+                    });
+                    return currentCard;
+                    break;
+                case 1:
+                    availableCards.forEach(function (card, i, arr) {
+                        if (currentCard == false) {
+                            currentCard = card;
+                        } else if ((card.self_tower_hp + card.self_wall_hp) >= (currentCard.self_tower_hp + currentCard.self_wall_hp)) {
+                            currentCard = card;
+                        }
+                    });
+                    return currentCard;
+            }
+        // Если нет карт, на которые хватает ресурсов
+        } else {
+            return cards[bot.getRandomCardFromHand()];
+        }
     }
 
     startTurn(player_id, callback) {

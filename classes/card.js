@@ -31,7 +31,16 @@ class Card {
         this.enemy_gen1 = data['card_enemy_gen1'] || 0;
         this.enemy_gen2 = data['card_enemy_gen2'] || 0;
         this.enemy_gen3 = data['card_enemy_gen3'] || 0;
+
+        this.self_gen1_equally = data['card_self_gen1_equally'] || 0;
+        this.self_gen2_equally = data['card_self_gen2_equally'] || 0;
+        this.self_gen3_equally = data['card_self_gen3_equally'] || 0;
+        this.enemy_gen1_equally = data['card_enemy_gen1_equally'] || 0;
+        this.enemy_gen2_equally = data['card_enemy_gen2_equally'] || 0;
+        this.enemy_gen3_equally = data['card_enemy_gen3_equally'] || 0;
     }
+
+
 }
 
 module.exports = Card;
