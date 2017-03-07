@@ -250,9 +250,9 @@ class Player {
         this.gen2 = ((this.gen2 + gen2) >= 1) ? (this.gen2 + gen2) : 1;
         this.gen3 = ((this.gen3 + gen3) >= 1) ? (this.gen3 + gen3) : 1;
 
-        this.gen1 = gen1_equally;
-        this.gen2 = gen2_equally;
-        this.gen3 = gen3_equally;
+        this.gen1 = (gen1_equally > 0) ? gen1_equally : this.gen1;
+        this.gen2 = (gen2_equally > 0) ? gen2_equally : this.gen2;
+        this.gen3 = (gen3_equally > 0) ? gen3_equally : this.gen3;
 
         return true;
     }
