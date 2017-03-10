@@ -242,9 +242,11 @@ class Player {
         let gen2_equally = (owner) ? card.self_gen2_equally : card.enemy_gen2_equally;
         let gen3_equally = (owner) ? card.self_gen3_equally : card.enemy_gen3_equally;
 
-        this.res1 = ((this.res1 + res1) >= 0) ? (this.res1 + res1) : 0;
-        this.res2 = ((this.res2 + res2) >= 0) ? (this.res2 + res2) : 0;
-        this.res3 = ((this.res3 + res3) >= 0) ? (this.res3 + res3) : 0;
+
+
+        this.res1 = ((this.res1 + res1) >= 0) ? (((this.res1 + res1) <= gameconf.res_max) ? (this.res1 + res1) : gameconf.res_max) : 0;
+        this.res2 = ((this.res2 + res2) >= 0) ? (((this.res1 + res2) <= gameconf.res_max) ? (this.res2 + res2) : gameconf.res_max) : 0;
+        this.res3 = ((this.res3 + res3) >= 0) ? (((this.res1 + res3) <= gameconf.res_max) ? (this.res3 + res3) : gameconf.res_max) : 0;
 
         this.gen1 = ((this.gen1 + gen1) >= 1) ? (this.gen1 + gen1) : 1;
         this.gen2 = ((this.gen2 + gen2) >= 1) ? (this.gen2 + gen2) : 1;
