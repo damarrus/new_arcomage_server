@@ -242,7 +242,7 @@ class Match {
                 if (result)
                     callback(result);
 
-                if (card.endturn) {
+                if (!card.endturn) {
                     self.endTurn(bot.id, false, function () {
                         
                     });
@@ -253,7 +253,7 @@ class Match {
                 result = self.isWin();
                 if (!result) {
                     bot.changeCardFromHand(card.id, function () {
-                        if (!card.endturn) {
+                        if (card.endturn) {
                             self.useCardBot(callback);
                         } else {
                             callback(result);

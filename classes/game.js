@@ -437,14 +437,21 @@ class Game {
 
         let self = this;
 
-        /*matches[socket.matchID].endTurn(socket.player.getParam('player_id'), false, function (result) {
-            if (result == 1 || result == 2 || result == 3) {
-                console.log('победил игрок ' + result);
-                matches[socket.matchID].endMatch(result, function () {
-                    matches.splice(socket.matchID, 1);
-                });
+        player.match.endTurn(player.id, false, function (result) {
+            if (result == false) {
+                return;
             }
-        });*/
+            if (!isNaN(parseFloat(result)) && isFinite(result)) {
+                console.log('победил игрок ' + result);
+                self.endMatch(socket, result, function () {
+
+                });
+            } else if (result == 'DRAWerror') {
+                Messenger.send(socket, "error", {method: "useCard", typeError: "DRAW!!!!!"});
+            } else {
+                Messenger.send(socket, "error", {method: "useCard", typeError: result});
+            }
+        });
     };
 
     endMatch(socket, player_id, callback) {
