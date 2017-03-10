@@ -183,7 +183,7 @@ class Match {
                 return;
             }
 
-            if (card.endturn) {
+            if (!card.endturn) {
                 self.endTurn(player.id, false, function (result) {
                     callback(result);
                 });
