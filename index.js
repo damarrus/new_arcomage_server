@@ -44,6 +44,8 @@ app.get('/cardcreator', function(req, res){
 app.listen(8000);
 
 let game = new Game();
+
+//game.newPlayer('asdf', 'fdsa', 1);
 //game.searcher();
 // Keep track of the chat clients
 let clients = [];

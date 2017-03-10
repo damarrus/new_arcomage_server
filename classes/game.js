@@ -54,6 +54,30 @@ class Game {
         })
     }
 
+    newPlayer(player_name, player_login, player_password) {
+        let query = "SELECT player_login FROM player WHERE player_login='"+player_login+"' OR player_name='"+player_name+"' LIMIT 1";
+        db.query(query, function(err, result) {
+            if (result.length == 0) {
+                query = "INSERT INTO player (player_name, player_login, player_password) " +
+                    "VALUES ('"+ player_name +"', '"+ player_login +"', '"+ player_password +"')";
+                db.query(query, function(err, result) {
+                    console.log(result);
+                    query = "INSERT INTO collection (player_id, card_id, card_amount) VALUES ";
+                    for (let i = 1; i <= 51; i++) {
+                        query += "("+ result.insertId +", "+ i +", 1),";
+                    }
+                    query = query.substring(0, query.length-1);
+                    console.log(query);
+                    db.query(query, function(err, result) {
+                        console.log('Игрок успешно добавлен');
+                    });
+                });
+            } else {
+                console.log('Игрок не добавлен');
+            }
+        });
+    }
+
     /**
      * Производит авторизацию игрока
      * @param {Socket} socket
