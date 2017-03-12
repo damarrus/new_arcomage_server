@@ -153,9 +153,9 @@ class Game {
      */
     checkHash(socket, hash) {
         if (hash != gameconf.gameconf_hash) {
-            Messenger.send(socket, "checkHash", {valid:false, hash:hash});
-            Messenger.send(socket, "getDatabaseCardsCount", {value:cardsArray.length});
-            Messenger.multipleSend(socket, "getDatabaseCards", cardsArray);
+            Messenger.send(socket, "checkHash", {valid:false});
+            //Messenger.send(socket, "getDatabaseCardsCount", {value:cardsArray.length});
+            //Messenger.multipleSend(socket, "getDatabaseCards", cardsArray);
             return;
         } else {
             return Messenger.send(socket, "checkHash", {valid:true});
