@@ -193,7 +193,9 @@ if (isTestClient) {
                     });
                 }
             }
-            socket.player.disconnect(function () {});
+            if (socket.player) {
+                socket.player.disconnect(function () {});
+            }
             clients.splice(clients.indexOf(socket), 1);
             console.log('client left');
         });
