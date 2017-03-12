@@ -23,6 +23,18 @@ const Card = require('./classes/card');
 const isTestClient = (process.argv[2] == 'test');
 console.log("test mode " + isTestClient);
 
+const http = require("http");
+const fs = require("fs");
+http.Server(function(req, res){
+    fs.readFile("./CardDB.adbf", function(err, data) {
+        if(err)
+            console.log(err);
+
+        res.write(data);
+        res.end();
+    })
+}).listen(5001);
+
 /*let player = new Player();
 player.loadPlayerByID(1, function () {
 
@@ -41,7 +53,7 @@ app.get('/', function(req, res){
 app.get('/cardcreator', function(req, res){
     res.render('cardcreator', {});
 });
-app.listen(8000);
+app.listen(5001);
 
 let game = new Game();
 
