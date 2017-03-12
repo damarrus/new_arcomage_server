@@ -213,6 +213,7 @@ if (isTestClient) {
             }
             if (socket.player) {
                 socket.player.disconnect(function () {});
+                game.search.splice(game.search.indexOf(socket.player), 1);
             }
             clients.splice(clients.indexOf(socket), 1);
             console.log('client left');
