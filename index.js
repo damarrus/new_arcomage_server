@@ -25,7 +25,7 @@ console.log("test mode " + isTestClient);
 
 const http = require("http");
 const fs = require("fs");
-http.Server(function(req, res){
+/*http.Server(function(req, res){
     fs.readFile("./CardDB.adbf", function(err, data) {
         if(err)
             console.log(err);
@@ -33,7 +33,7 @@ http.Server(function(req, res){
         res.write(data);
         res.end();
     })
-}).listen(5001);
+}).listen(5001);*/
 
 /*let player = new Player();
 player.loadPlayerByID(1, function () {
@@ -50,8 +50,14 @@ app.set('views', __dirname + '/views');
 app.get('/', function(req, res){
     res.render('test', {});
 });
-app.get('/cardcreator', function(req, res){
-    res.render('cardcreator', {});
+app.get('/getdb', function(req, res){
+    fs.readFile("./CardDB.adbf", function(err, data) {
+        if (err)
+            console.log(err);
+
+        res.write(data);
+        res.end();
+    })
 });
 app.listen(5001);
 
