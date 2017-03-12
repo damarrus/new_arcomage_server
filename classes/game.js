@@ -4,6 +4,7 @@
 
     // TODO: static methods
     // TODO: проверки на статус игрока
+const fs = require("fs");
 const async = require('async');
 const Match = require('./match');
 const Player = require('./player');
@@ -153,7 +154,11 @@ class Game {
      */
     checkHash(socket, hash) {
         if (hash != gameconf.gameconf_hash) {
-            Messenger.send(socket, "checkHash", {valid:false});
+            fs.stat( './CardDB.adbf', function( err, stat ) {
+                if( !err ) {
+                    Messenger.send(socket, "checkHash", {valid:false, size: stat.size});
+                }
+            });
             //Messenger.send(socket, "getDatabaseCardsCount", {value:cardsArray.length});
             //Messenger.multipleSend(socket, "getDatabaseCards", cardsArray);
             return;
