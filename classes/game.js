@@ -306,6 +306,22 @@ class Game {
         });
     };
 
+    unSearch(socket) {
+        if (!socket.player)
+            return Messenger.send(socket, "error", {method: "searchGame", typeError: "notAuth"});
+
+        let player = socket.player;
+
+        // TODO: сделать нормальную отмену поиска
+        if (player.inSearch) {
+            this.search.splice(this.search.indexOf(player), 1);
+            player.inSearch = false;
+            return Messenger.send(socket, "unSearch", {valid:true});
+        }
+
+        return Messenger.send(socket, "unSearch", {valid:false});
+    };
+
     /**
      * Поиск противника по рейтингу
      * @param {Player} player

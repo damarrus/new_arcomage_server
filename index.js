@@ -131,6 +131,9 @@ function socketServer(socket, data) {
                         break;
                 }
                 break;
+            case 'unSearch':
+                game.unSearch(socket);
+                break;
             case 'ready':
                 game.startGame(socket);
                 break;
